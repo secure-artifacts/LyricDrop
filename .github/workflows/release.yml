@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to build (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
 
 permissions:
   contents: write
@@ -26,7 +32,11 @@ jobs:
 
       - name: Resolve version
         id: version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        run: |
+          TAG="${{ inputs.tag }}"
+          if [ -z "$TAG" ]; then TAG="$GITHUB_REF_NAME"; fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
       - name: Archive (ad-hoc signed)
         run: |
@@ -47,6 +57,12 @@ jobs:
       - name: Verify signature
         run: codesign -dv build/LyricDrop.xcarchive/Products/Applications/LyricDrop.app 2>&1 || true
 
+      - name: Strip extended attributes from app
+        run: |
+          APP=build/LyricDrop.xcarchive/Products/Applications/LyricDrop.app
+          xattr -cr "$APP"
+          xattr -lr "$APP" || true
+
       - name: Package DMG
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -54,12 +70,14 @@ jobs:
           STAGE=build/dmg-stage
           mkdir -p "$STAGE"
           cp -R build/LyricDrop.xcarchive/Products/Applications/LyricDrop.app "$STAGE/"
+          xattr -cr "$STAGE/LyricDrop.app"
           ln -s /Applications "$STAGE/Applications"
           hdiutil create \
             -volname "LyricDrop" \
             -srcfolder "$STAGE" \
             -ov -format UDZO \
             "build/LyricDrop-${VERSION}.dmg"
+          xattr -cr "build/LyricDrop-${VERSION}.dmg"
           ls -la "build/LyricDrop-${VERSION}.dmg"
 
       - name: Attest build provenance
@@ -67,18 +85,23 @@ jobs:
         with:
           subject-path: build/LyricDrop-*.dmg
 
-      - name: Create GitHub Release
+      - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           NOTES_FILE=release_notes.md
           if [ ! -f "$NOTES_FILE" ]; then
             echo "# LyricDrop ${VERSION}" > "$NOTES_FILE"
             echo "" >> "$NOTES_FILE"
-            echo "Auto-generated release from tag ${GITHUB_REF_NAME}." >> "$NOTES_FILE"
+            echo "Auto-generated release from tag ${TAG}." >> "$NOTES_FILE"
           fi
-          gh release create "$GITHUB_REF_NAME" \
-            --title "LyricDrop ${VERSION}" \
-            --notes-file "$NOTES_FILE" \
-            "build/LyricDrop-${VERSION}.dmg"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "build/LyricDrop-${VERSION}.dmg" --clobber
+          else
+            gh release create "$TAG" \
+              --title "LyricDrop ${VERSION}" \
+              --notes-file "$NOTES_FILE" \
+              "build/LyricDrop-${VERSION}.dmg"
+          fi
