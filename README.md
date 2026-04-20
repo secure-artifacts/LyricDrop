@@ -4,17 +4,20 @@
 
 ## 截图
 
-### 菜单栏面板
-
-完整播放器 UI、进度条、倍速控制、歌词列表都在菜单栏弹出面板里。
-
-![menu bar panel](docs/screenshots/1.png)
-
-### 桌面悬浮歌词 & 外观设置
-
-桌面悬浮歌词支持多种主题颜色、字体、字号、显示模式（水平扫过 / 逐字滚动 / 水平滚动）和显示行数。下方即为实际悬浮效果，卡拉 OK 模式下歌词逐字渐变染色。
-
-![desktop lyrics and settings](docs/screenshots/2.png)
+<table>
+  <tr>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/screenshots/1.png" alt="menu bar panel" /><br/>
+      <b>菜单栏面板</b><br/>
+      <sub>完整播放器 UI、进度条、倍速控制、歌词列表都在菜单栏弹出面板里。</sub>
+    </td>
+    <td width="50%" align="center" valign="top">
+      <img src="docs/screenshots/2.png" alt="desktop lyrics and settings" /><br/>
+      <b>桌面悬浮歌词 &amp; 外观设置</b><br/>
+      <sub>多种主题渐变、字体、字号、显示模式（水平扫过 / 逐字滚动 / 水平滚动）和显示行数可调；下方即为卡拉 OK 模式的逐字染色效果。</sub>
+    </td>
+  </tr>
+</table>
 
 ## 功能
 
